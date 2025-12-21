@@ -1,0 +1,6 @@
+// File: android/tflite_flutter_fix.gradle
+afterEvaluate {
+    project.android {
+        namespace 'org.tensorflow.lite.flutter.tflite_flutter'
+    }
+}

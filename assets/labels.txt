@@ -1,0 +1,11 @@
+baju
+baterai
+besi
+kaca_coklat
+kaca_hijau
+kaca_putih
+kardus
+kertas
+plastik
+sepatu
+sisa_makanan
