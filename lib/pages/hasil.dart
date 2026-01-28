@@ -1,26 +1,59 @@
-// import 'dart:io';
-// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'detail.dart';
 
 class HasilPage extends StatelessWidget {
   final String imagePath;
   final String wasteType;
-  final double confidence;
+  final double? confidence; // idealnya 0.0 – 1.0
 
   const HasilPage({
     super.key,
     required this.imagePath,
     required this.wasteType,
-    required this.confidence,
+    this.confidence,
   });
 
-  // Function untuk mendapatkan nama file gambar berdasarkan tipe sampah
+  // ================================
+  // Normalisasi confidence ke 0.0 – 1.0
+  // Kalau ternyata dikirim 0–100, kita ubah dulu
+  // ================================
+  double get normalizedConfidence {
+    if (confidence == null) return 0.0;
+
+    double c = confidence!;
+
+    // Kalau lebih dari 1, berarti masih format persen
+    if (c > 1.0) {
+      c = c / 100.0;
+    }
+
+    // Pastikan tetap di 0.0 – 1.0
+    return c.clamp(0.0, 1.0);
+  }
+
+  // ================================
+  // LOGIKA AKURASI (THRESHOLD 50%)
+  // ================================
+  bool get isLowAccuracy {
+    return normalizedConfidence < 0.10;
+  }
+
+  String getResponseText() {
+    if (isLowAccuracy) {
+      return "Objek yang kamu foto belum dapat dikenali sebagai sampah.\n"
+          "Coba ambil gambar yang lebih jelas ya!";
+    } else {
+      return "Objek berhasil dikenali sebagai jenis sampah.\n"
+          "Bagus, lanjutkan!";
+    }
+  }
+
+  // ================================
+  // Gambar berdasarkan jenis sampah
+  // ================================
   String _getWasteImage(String type) {
-    // Normalisasi nama untuk matching dengan file
     String normalizedType = type.toLowerCase().replaceAll(' ', '_');
 
-    // Map untuk handle variasi nama
     Map<String, String> imageMap = {
       'baju': 'baju.png',
       'baterai': 'baterai.png',
@@ -33,40 +66,52 @@ class HasilPage extends StatelessWidget {
       'plastik': 'plastik.png',
       'sepatu': 'sepatu.png',
       'sisa_makanan': 'sisa_makanan.png',
+      'buah_busuk': 'buah_busuk.png',
+      'kulit_telur': 'kulit_telur.png',
     };
 
-    return imageMap[normalizedType] ??
-        'botol.png'; // default ke botol.png jika tidak ada
+    return imageMap[normalizedType] ?? 'botol.png';
   }
 
-  void _goToDetailPage(BuildContext context) {
-    // ================================
-    // 🔵 DEBUG — CETAK DI CMD
-    // ================================
-    print("🔵 HasilPage — wasteType yang DIKIRIM: $wasteType");
-    print("🔵 HasilPage — confidence: $confidence");
+  // ================================
+  // Gambar hasil
+  // ================================
+  String get resultImage {
+    if (isLowAccuracy) {
+      return 'bukan_sampah.png';
+    } else {
+      return _getWasteImage(wasteType);
+    }
+  }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) {
-          return DetailPage(
+  // ================================
+  // Aksi tombol
+  // ================================
+  void _handleButtonAction(BuildContext context) {
+    if (isLowAccuracy) {
+      Navigator.pop(context);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailPage(
             wasteType: wasteType,
-            confidence: confidence,
-          );
-        },
-      ),
-    );
+            confidence: normalizedConfidence, // kirim yang sudah benar
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final double confidencePercent = normalizedConfidence * 100;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // 💛 Background bawah (paling belakang)
           Positioned.fill(
             child: Align(
               alignment: Alignment.bottomCenter,
@@ -78,7 +123,6 @@ class HasilPage extends StatelessWidget {
             ),
           ),
 
-          // 🌟 Bintang di atas
           Positioned(
             top: 80,
             child: Image.asset(
@@ -87,7 +131,6 @@ class HasilPage extends StatelessWidget {
             ),
           ),
 
-          // 🧃 Teks deteksi (DINAMIS sesuai hasil klasifikasi)
           Positioned(
             top: 220,
             child: Column(
@@ -102,45 +145,35 @@ class HasilPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '"$wasteType"', // 👈 DINAMIS dari hasil klasifikasi
+                  isLowAccuracy ? '"Bukan Sampah"' : '"$wasteType"',
                   style: const TextStyle(
                     fontSize: 28,
-                    color: Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                // Tampilkan confidence score
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
+                    color: isLowAccuracy
+                        ? Colors.orange.withOpacity(0.2)
+                        : Colors.green.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Akurasi: ${(confidence * 100).toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // 🧴 Gambar jenis sampah (DINAMIS sesuai klasifikasi)
           Positioned(
             top: 340,
             child: Image.asset(
-              'assets/images/${_getWasteImage(wasteType)}', // 👈 DINAMIS
+              'assets/images/$resultImage',
               width: 220,
               errorBuilder: (context, error, stackTrace) {
-                // Jika gambar tidak ditemukan, tampilkan icon default
                 return Container(
                   width: 220,
                   height: 220,
@@ -158,13 +191,14 @@ class HasilPage extends StatelessWidget {
             ),
           ),
 
-          // 🔘 Tombol Next
           Positioned(
             bottom: 50,
             child: GestureDetector(
-              onTap: () => _goToDetailPage(context),
+              onTap: () => _handleButtonAction(context),
               child: Image.asset(
-                'assets/images/lanjutbt.png',
+                isLowAccuracy
+                    ? 'assets/images/btkembali.png'
+                    : 'assets/images/lanjutbt.png',
                 width: 260,
               ),
             ),

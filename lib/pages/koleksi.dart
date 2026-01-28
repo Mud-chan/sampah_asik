@@ -1,181 +1,240 @@
 import 'package:flutter/material.dart';
+import '../database/db_helper.dart';
+import '../utils/session_manager.dart';
 
-class KoleksiPage extends StatelessWidget {
+class KoleksiPage extends StatefulWidget {
   const KoleksiPage({super.key});
 
   @override
+  State<KoleksiPage> createState() => _KoleksiPageState();
+}
+
+class _KoleksiPageState extends State<KoleksiPage> {
+  List<Map<String, dynamic>> allData = [];
+  int currentPage = 0;
+  static const int itemsPerPage = 6;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKoleksi();
+  }
+
+  Future<void> _loadKoleksi() async {
+    final username = await SessionManager.getUsername();
+    if (username == null) return;
+
+    final data = await DBHelper.getSavedWaste(username);
+    setState(() {
+      allData = data;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 📦 Data koleksi (sementara hardcode, bisa dari API nanti)
-    final List<Map<String, dynamic>> koleksi = [
-      {
-        'kategori': 'Rare',
-        'warna': const Color(0xFFFFFF00),
-        'bintang': 3,
-        'icon': 'assets/images/botol.png',
-        'dampak': 8908
-      },
-      {
-        'kategori': 'Rare',
-        'warna': const Color(0xFFFFFF00),
-        'bintang': 3,
-        'icon': 'assets/images/botol.png',
-        'dampak': 8908
-      },
-      {
-        'kategori': 'Normal',
-        'warna': const Color(0xFFDEE8B0),
-        'bintang': 2,
-        'icon': 'assets/images/botol.png',
-        'dampak': 8908
-      },
-      {
-        'kategori': 'Common',
-        'warna': const Color(0xFFEAEAEA),
-        'bintang': 1,
-        'icon': 'assets/images/botol.png',
-        'dampak': 8908
-      },
-      {
-        'kategori': 'Common',
-        'warna': const Color(0xFFEAEAEA),
-        'bintang': 1,
-        'icon': 'assets/images/botol.png',
-        'dampak': 8908
-      },
-    ];
+    // 🔢 Pagination logic
+    final start = currentPage * itemsPerPage;
+    final end = (start + itemsPerPage) > allData.length
+        ? allData.length
+        : start + itemsPerPage;
+
+    final pageData = allData.sublist(start, end);
 
     return Scaffold(
       backgroundColor: Colors.yellow[50],
-
       body: Padding(
         padding: const EdgeInsets.all(12),
-        child: ListView.builder(
-          itemCount: koleksi.length,
-          itemBuilder: (context, index) {
-            final item = koleksi[index];
-            return GestureDetector(
-              onTap: () {
-                // 👉 Ketika diklik, langsung pindah ke halaman detail
-                Navigator.pushNamed(context, '/detail');
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: item['warna'],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    // 🗑️ Gambar tempat sampah
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                      child: Image.asset(
-                        item['icon'],
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+        child: Column(
+          children: [
+            // 📦 LIST KOLEKSI
+            Expanded(
+              child: ListView.builder(
+                itemCount: pageData.length,
+                itemBuilder: (context, index) {
+                  final item = pageData[index];
+                  final int stars = item['stars'];
 
-                    // 🌟 Info botol
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/detail-koleksi',
+                        arguments: {
+                          'id': item['id'],
+                          'name': item['waste_name'],
+                          'stars': stars,
+                        },
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: warnaDariStar(stars),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
                         children: [
-                          // Bintang sesuai jumlah
-                          Row(
-                            children: List.generate(
-                              3,
-                              (starIndex) => Icon(
-                                Icons.star,
-                                color: starIndex < item['bintang']
-                                    ? Colors.amber
-                                    : Colors.grey[300],
-                                size: 28,
+                          // 🗑️ ICON
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.black12,
+                                width: 2,
+                              ),
+                              image: DecorationImage(
+                                image: AssetImage(
+                                  'assets/images/${item['waste_name'].toString().toLowerCase()}.png',
+                                ),
+                                fit: BoxFit.cover, // 🔥 INI KUNCI
                               ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Botol Plastik!',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const Text(
-                            'Dampak pada Lingkungan',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            '${item['dampak']}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+
+                          const SizedBox(width: 16),
+
+                          // 📊 INFO
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // ⭐ STAR
+                                Row(
+                                  children: List.generate(
+                                    3,
+                                    (i) => Icon(
+                                      Icons.star,
+                                      color: i < stars
+                                          ? Colors.amber
+                                          : Colors.grey[300],
+                                      size: 26,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 6),
+
+                                // 🧾 NAMA
+                                Text(
+                                  item['waste_name'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                // 🌍 DAMPAK LABEL
+                                const Text(
+                                  'Dampak Pada Lingkungan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+
+                                // 🔢 DAMPAK VALUE
+                                Text(
+                                  dampakDariStar(stars).toString(),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+
+            // 🔢 PAGINATION
+            if (allData.length > itemsPerPage)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: currentPage > 0
+                        ? () => setState(() => currentPage--)
+                        : null,
+                  ),
+                  Text(
+                    'Page ${currentPage + 1}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: (currentPage + 1) * itemsPerPage < allData.length
+                        ? () => setState(() => currentPage++)
+                        : null,
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
 
-      // 🧭 Bottom Navigation Bar
+      // 🧭 BOTTOM NAV
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFFFFD72E),
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black54,
-        currentIndex: 1, // index 1 karena ini halaman Koleksi
+        currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/home');
           } else if (index == 1) {
-            // tetap di halaman ini
+            Navigator.pushReplacementNamed(context, '/koleksi');
           } else if (index == 2) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Equipment belum tersedia')),
-            );
-          } else if (index == 3) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Shop belum tersedia')),
-            );
+            Navigator.pushReplacementNamed(context, '/profile');
           }
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
+            icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.collections_bookmark_rounded),
+            icon: Icon(Icons.collections),
             label: 'Koleksi',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shield_rounded),
-            label: 'Equipment',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_rounded),
-            label: 'Shop',
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),
     );
   }
+}
+
+/* ===================== HELPER ===================== */
+
+String kategoriDariStar(int stars) {
+  if (stars >= 3) return 'Rare';
+  if (stars == 2) return 'Normal';
+  return 'Common';
+}
+
+Color warnaDariStar(int stars) {
+  if (stars >= 3) return const Color(0xFFFFFF00);
+  if (stars == 2) return const Color(0xFFDEE8B0);
+  return const Color(0xFFEAEAEA);
+}
+
+int dampakDariStar(int stars) {
+  if (stars >= 3) return 2817;
+  if (stars == 2) return 1782;
+  return 1090;
 }

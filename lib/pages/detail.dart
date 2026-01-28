@@ -1,5 +1,7 @@
 // Combined wasteData and DetailPage widget
 import 'package:flutter/material.dart';
+import '../database/db_helper.dart';
+import '../utils/session_manager.dart';
 
 final Map<String, dynamic> wasteData = {
   'baju': {
@@ -11,10 +13,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Baju bekas termasuk limbah tekstil yang jika tidak dikelola dengan baik dapat mencemari tanah dan air.',
     'progress': {
-      'difficulty': 60,
-      'progress': 40,
-      'area': 50,
-      'quests': 30,
+      'difficulty': 70, // Dampak Lingkungan (tinggi)
+      'progress': 40, // Tingkat Daur Ulang (sedang, sulit)
+      'area': 60, // Cakupan Pengaruh
+      'quests': 50, // Aksi Pengelolaan
     }
   },
   'baterai': {
@@ -26,10 +28,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Baterai bekas adalah limbah B3 yang harus dibuang melalui tempat khusus karena sangat berbahaya.',
     'progress': {
-      'difficulty': 100,
-      'progress': 80,
-      'area': 90,
-      'quests': 70,
+      'difficulty': 100, // Sangat berbahaya
+      'progress': 30, // Sulit didaur ulang
+      'area': 90, // Dampaknya luas
+      'quests': 90, // Butuh penanganan khusus
     }
   },
   'besi': {
@@ -41,10 +43,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Besi bekas merupakan limbah anorganik yang dapat didaur ulang untuk mengurangi limbah.',
     'progress': {
-      'difficulty': 70,
-      'progress': 50,
-      'area': 80,
-      'quests': 60,
+      'difficulty': 50, // Dampak sedang
+      'progress': 80, // Sangat bisa didaur ulang
+      'area': 60,
+      'quests': 40,
     }
   },
   'kaca_coklat': {
@@ -56,10 +58,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Kaca merupakan bahan yang aman selama tidak pecah, dan sangat cocok untuk daur ulang.',
     'progress': {
-      'difficulty': 50,
-      'progress': 30,
-      'area': 40,
-      'quests': 20,
+      'difficulty': 45,
+      'progress': 75,
+      'area': 50,
+      'quests': 35,
     }
   },
   'kaca_hijau': {
@@ -71,10 +73,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Kaca hijau memiliki kekuatan tinggi dan sering digunakan kembali melalui proses daur ulang.',
     'progress': {
-      'difficulty': 50,
-      'progress': 40,
+      'difficulty': 40,
+      'progress': 85,
       'area': 55,
-      'quests': 25,
+      'quests': 30,
     }
   },
   'kaca_putih': {
@@ -86,10 +88,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Kaca putih adalah salah satu jenis kaca paling mudah melewati proses daur ulang.',
     'progress': {
-      'difficulty': 30,
-      'progress': 20,
-      'area': 25,
-      'quests': 10,
+      'difficulty': 35,
+      'progress': 90,
+      'area': 40,
+      'quests': 25,
     }
   },
   'kardus': {
@@ -101,10 +103,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Kardus merupakan bahan ramah lingkungan dan sangat sering didaur ulang.',
     'progress': {
-      'difficulty': 20,
-      'progress': 60,
-      'area': 35,
-      'quests': 15,
+      'difficulty': 15, // Dampak kecil
+      'progress': 90, // Sangat mudah didaur ulang
+      'area': 30,
+      'quests': 20,
     }
   },
   'kertas': {
@@ -115,10 +117,10 @@ final Map<String, dynamic> wasteData = {
     'impact': 'Mudah terurai dan memiliki nilai daur ulang yang tinggi.',
     'desc': 'Kertas menjadi salah satu bahan yang paling mudah didaur ulang.',
     'progress': {
-      'difficulty': 20,
-      'progress': 50,
-      'area': 20,
-      'quests': 10,
+      'difficulty': 10,
+      'progress': 95,
+      'area': 25,
+      'quests': 15,
     }
   },
   'plastik': {
@@ -130,10 +132,10 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Plastik membutuhkan waktu sangat lama untuk terurai dan harus didaur ulang.',
     'progress': {
-      'difficulty': 40,
-      'progress': 80,
-      'area': 70,
-      'quests': 40,
+      'difficulty': 85,
+      'progress': 50,
+      'area': 80,
+      'quests': 70,
     }
   },
   'sepatu': {
@@ -146,9 +148,9 @@ final Map<String, dynamic> wasteData = {
         'Sepatu umumnya terdiri dari campuran bahan yang membuatnya sulit untuk dihancurkan.',
     'progress': {
       'difficulty': 75,
-      'progress': 60,
+      'progress': 30,
       'area': 65,
-      'quests': 50,
+      'quests': 60,
     }
   },
   'sisa_makanan': {
@@ -160,10 +162,42 @@ final Map<String, dynamic> wasteData = {
     'desc':
         'Sisa makanan dapat dikomposkan sehingga mengurangi emisi gas rumah kaca.',
     'progress': {
+      'difficulty': 25,
+      'progress': 85,
+      'area': 30,
+      'quests': 20,
+    }
+  },
+  'kulit_telur': {
+    'name': 'Kulit Telur',
+    'stars': 1,
+    'image': 'kulit_telur.png',
+    'type': 'Organik',
+    'impact':
+        'Dapat terurai secara alami dan bermanfaat untuk menambah kalsium pada tanah jika dijadikan kompos.',
+    'desc':
+        'Kulit telur bisa dihancurkan dan dicampurkan ke dalam kompos sebagai sumber kalsium alami untuk tanaman.',
+    'progress': {
       'difficulty': 10,
-      'progress': 30,
-      'area': 15,
-      'quests': 5,
+      'progress': 90,
+      'area': 20,
+      'quests': 15,
+    }
+  },
+  'buah_busuk': {
+    'name': 'Buah Busuk',
+    'stars': 1,
+    'image': 'buah_busuk.png',
+    'type': 'Organik',
+    'impact':
+        'Menghasilkan bau dan gas metana jika dibiarkan, tetapi sangat baik untuk bahan kompos.',
+    'desc':
+        'Buah busuk mudah terurai dan dapat dimanfaatkan sebagai bahan utama pembuatan pupuk kompos.',
+    'progress': {
+      'difficulty': 20,
+      'progress': 85,
+      'area': 25,
+      'quests': 20,
     }
   },
 };
@@ -175,11 +209,59 @@ class DetailPage extends StatelessWidget {
   const DetailPage(
       {super.key, required this.wasteType, required this.confidence});
 
+  // ===================== HITUNG EXP =====================
+  int _getExpFromStars(int stars) {
+    if (stars == 3) return 3000;
+    if (stars == 2) return 2000;
+    return 1000;
+  }
+
+  // ===================== SIMPAN =====================
+  Future<void> _handleSave(
+    BuildContext context,
+    String wasteName,
+    int stars,
+  ) async {
+    final username = await SessionManager.getUsername();
+    if (username == null) return;
+
+    final exp = _getExpFromStars(stars);
+
+    // ✅ Tambah EXP
+    await DBHelper.addExp(username, exp);
+
+    // ✅ Simpan sampah (nama + stars)
+    await DBHelper.saveWaste(
+      username: username,
+      wasteName: wasteName,
+      stars: stars,
+    );
+
+    _showSavedDialog(context);
+  }
+
+  // ===================== ABAIKAN =====================
+  Future<void> _handleIgnore(
+    BuildContext context,
+    int stars,
+  ) async {
+    final username = await SessionManager.getUsername();
+    if (username == null) return;
+
+    final exp = _getExpFromStars(stars);
+
+    // ❗ HANYA TAMBAH EXP
+    await DBHelper.addExp(username, exp);
+
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
+// ===================== DIALOG =====================
   void _showSavedDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // supaya harus klik tombol tutup
-      builder: (context) => Dialog(
+      barrierDismissible: false,
+      builder: (_) => Dialog(
         backgroundColor: Colors.yellowAccent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
@@ -191,21 +273,15 @@ class DetailPage extends StatelessWidget {
               const SizedBox(height: 16),
               const Text(
                 "Hasil Disimpan!",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  Navigator.pop(context); // tutup dialog
+                  Navigator.pop(context);
                   Navigator.pushReplacementNamed(context, '/home');
                 },
-                child: Image.asset(
-                  'assets/images/tutupbt.png',
-                  width: 120,
-                ),
+                child: Image.asset('assets/images/tutupbt.png', width: 120),
               ),
             ],
           ),
@@ -271,7 +347,7 @@ class DetailPage extends StatelessWidget {
                 SizedBox(height: 10),
                 Text("Jenis: $type"),
                 SizedBox(height: 10),
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text("Dampak Lingkungan:",
                       style:
@@ -293,16 +369,16 @@ class DetailPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildProgressBar("Difficulty", prog['difficulty']),
-                    _buildProgressBar("Progress", prog['progress']),
+                    _buildProgressBar("Dampak Lingkungan", prog['difficulty']),
+                    _buildProgressBar("Tingkat Daur Ulang", prog['progress']),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildProgressBar("Area", prog['area']),
-                    _buildProgressBar("Quests", prog['quests']),
+                    _buildProgressBar("Cakupan Pengaruh", prog['area']),
+                    _buildProgressBar("Aksi Pengelolaan", prog['quests']),
                   ],
                 ),
               ],
@@ -315,18 +391,57 @@ class DetailPage extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Tombol Abaikan
+                // ================= ABAIKAN =================
                 GestureDetector(
-                  onTap: () => Navigator.pushReplacementNamed(context, '/home'),
+                  onTap: () async {
+                    final username = await SessionManager.getUsername();
+                    if (username == null) return;
+
+                    // HITUNG EXP DARI STARS
+                    int exp = stars == 3
+                        ? 3000
+                        : stars == 2
+                            ? 2000
+                            : 1000;
+
+                    // ❗ HANYA SIMPAN EXP
+                    await DBHelper.addExp(username, exp);
+
+                    Navigator.pushReplacementNamed(context, '/home');
+                  },
                   child: Image.asset(
                     'assets/images/abaikanbt.png',
                     width: 170,
                   ),
                 ),
+
                 const SizedBox(width: 30),
-                // Tombol Simpan
+
+                // ================= SIMPAN =================
                 GestureDetector(
-                  onTap: () => _showSavedDialog(context),
+                  onTap: () async {
+                    final username = await SessionManager.getUsername();
+                    if (username == null) return;
+
+                    // HITUNG EXP DARI STARS
+                    int exp = stars == 3
+                        ? 3000
+                        : stars == 2
+                            ? 2000
+                            : 1000;
+
+                    // ✅ SIMPAN EXP
+                    await DBHelper.addExp(username, exp);
+
+                    // ✅ SIMPAN NAMA SAMPAH + STARS
+                    await DBHelper.saveWaste(
+                      username: username,
+                      wasteName: name,
+                      stars: stars,
+                    );
+
+                    _showSavedDialog(context);
+                  },
                   child: Image.asset(
                     'assets/images/simpanbt.png',
                     width: 170,
@@ -342,9 +457,17 @@ class DetailPage extends StatelessWidget {
 
   Widget _buildProgressBar(String title, int value) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title),
-        SizedBox(height: 5),
+        Text(
+          "$title ($value/100)",
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87, // sesuaikan dengan background kamu
+          ),
+        ),
+        const SizedBox(height: 5),
         Container(
           width: 120,
           height: 10,
@@ -355,7 +478,7 @@ class DetailPage extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Container(
-              width: (value.toDouble() / 100) * 120,
+              width: (value.clamp(0, 100).toDouble() / 100) * 120,
               height: 10,
               decoration: BoxDecoration(
                 color: Colors.green,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/session_manager.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -71,9 +72,15 @@ class WelcomePage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/home');
-                },
+                onPressed: () async {
+                    final isLogin = await SessionManager.isLoggedIn();
+
+                    if (isLogin) {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    }
+                  },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF5C5C),
                   padding: const EdgeInsets.symmetric(

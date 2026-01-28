@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -11,138 +12,104 @@ class WasteClassifier {
   bool get isModelLoaded => _isModelLoaded;
 
   Future<void> loadModel() async {
-    try {
-      print('🔄 Memuat model...');
+    _interpreter = await Interpreter.fromAsset(
+      'assets/models/waste_classifier_int8.tflite',
+      options: InterpreterOptions()..threads = 4,
+    );
 
-      _interpreter = await Interpreter.fromAsset(
-        'assets/models/waste_classifier_int8.tflite',
-        options: InterpreterOptions()..threads = 4,
-      );
+    final labelsData = await rootBundle.loadString('assets/labels.txt');
+    _labels = labelsData
+        .split('\n')
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
 
-      final labelsData = await rootBundle.loadString('assets/labels.txt');
-      _labels = labelsData
-          .split('\n')
-          .where((label) => label.trim().isNotEmpty)
-          .toList();
-
-      print('✅ Model loaded successfully');
-      print('Input shape: ${_interpreter!.getInputTensor(0).shape}');
-      print('Output shape: ${_interpreter!.getOutputTensor(0).shape}');
-      print('Labels (${_labels.length}): $_labels');
-
-      _isModelLoaded = true;
-    } catch (e) {
-      print('❌ Error loading model: $e');
-      _isModelLoaded = false;
-      rethrow;
-    }
+    _isModelLoaded = true;
   }
 
+  // ======================= SOFTMAX =======================
+  List<double> _softmax(List<double> logits) {
+    final maxLogit = logits.reduce((a, b) => a > b ? a : b);
+    final exps = logits.map((e) => math.exp(e - maxLogit)).toList();
+    final sum = exps.reduce((a, b) => a + b);
+    return exps.map((e) => e / sum).toList();
+  }
+
+  // ======================= CLASSIFY =======================
   Future<Map<String, dynamic>> classifyImage(String imagePath) async {
-    if (!_isModelLoaded || _interpreter == null) {
-      throw Exception('Model not loaded');
-    }
+    final input = await _preprocessImage(imagePath);
 
-    try {
-      print('🔍 Memproses gambar: $imagePath');
+    final outputTensor = _interpreter!.getOutputTensor(0);
+    final scale = outputTensor.params.scale;
+    final zeroPoint = outputTensor.params.zeroPoint;
 
-      final input = await _preprocessImage(imagePath);
+    var output = List.generate(
+      1,
+      (i) => List.filled(outputTensor.shape[1], 0),
+    );
 
-      final outputShape = _interpreter!.getOutputTensor(0).shape;
+    _interpreter!.run(input, output);
 
-      // Karena output INT8 / UINT8 → pakai num lalu convert ke double
-      var output = List.generate(
-        1,
-        (i) => List.filled(outputShape[1], 0),
-      );
+    // 1. Dequantize INT8 → float
+    List<double> dequantized = output[0].map((e) {
+      final int v = e as int;
+      return (v - zeroPoint) * scale;
+    }).toList();
 
-      _interpreter!.run(input, output);
+    // 2. Softmax → probabilitas 0.0 – 1.0
+    List<double> probabilities = _softmax(dequantized);
 
-      // Convert output ke double
-      List<double> results =
-          output[0].map((e) => (e as num).toDouble()).toList();
+    // 3. Ambil confidence terbesar
+    double maxConfidence = probabilities[0];
+    int maxIndex = 0;
 
-      print('Raw output: $results');
-
-      double maxConfidence = results[0];
-      int maxIndex = 0;
-
-      for (int i = 1; i < results.length; i++) {
-        if (results[i] > maxConfidence) {
-          maxConfidence = results[i];
-          maxIndex = i;
-        }
+    for (int i = 1; i < probabilities.length; i++) {
+      if (probabilities[i] > maxConfidence) {
+        maxConfidence = probabilities[i];
+        maxIndex = i;
       }
-
-      String labelName =
-          maxIndex < _labels.length ? _labels[maxIndex] : 'Unknown';
-
-      print(
-          '✅ Hasil: $labelName (confidence: $maxConfidence, index: $maxIndex)');
-
-      return {
-        'label': _formatLabel(labelName),
-        'confidence': maxConfidence,
-        'rawLabel': labelName,
-        'allResults': results,
-      };
-    } catch (e) {
-      print('❌ Error klasifikasi: $e');
-      rethrow;
     }
+
+    String label =
+        maxIndex < _labels.length ? _labels[maxIndex] : "Unknown";
+
+    print("Probabilities: $probabilities");
+    print("Result: $label → $maxConfidence");
+
+    return {
+      'label': _formatLabel(label),
+      'confidence': maxConfidence, // sudah 0.0 – 1.0
+    };
   }
 
-  /// PREPROCESS KHUSUS UINT8 (INT8 MODEL)
+  // ======================= PREPROCESS =======================
   Future<List<List<List<List<int>>>>> _preprocessImage(String imagePath) async {
-    try {
-      final imageFile = File(imagePath);
-      final bytes = await imageFile.readAsBytes();
-      img.Image? image = img.decodeImage(bytes);
+    final imageFile = File(imagePath);
+    final bytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(bytes)!;
 
-      if (image == null) {
-        throw Exception('Failed to decode image');
-      }
+    final inputShape = _interpreter!.getInputTensor(0).shape;
+    final h = inputShape[1];
+    final w = inputShape[2];
 
-      final inputShape = _interpreter!.getInputTensor(0).shape;
-      final inputHeight = inputShape[1];
-      final inputWidth = inputShape[2];
+    final resized = img.copyResize(image, width: w, height: h);
 
-      final resized = img.copyResize(
-        image,
-        width: inputWidth,
-        height: inputHeight,
-      );
-
-      final input = List.generate(
-        1,
-        (b) => List.generate(
-          inputHeight,
-          (y) => List.generate(
-            inputWidth,
-            (x) {
-              final pixel = resized.getPixel(x, y);
-
-              return [
-                pixel.r.toInt(),
-                pixel.g.toInt(),
-                pixel.b.toInt(),
-              ];
-            },
-          ),
+    return [
+      List.generate(
+        h,
+        (y) => List.generate(
+          w,
+          (x) {
+            final p = resized.getPixel(x, y);
+            return [p.r.toInt(), p.g.toInt(), p.b.toInt()];
+          },
         ),
-      );
-
-      return input;
-    } catch (e) {
-      print('❌ Error preprocessing: $e');
-      rethrow;
-    }
+      )
+    ];
   }
 
   String _formatLabel(String label) {
-    String clean = label.trim();
-
-    switch (clean.toLowerCase()) {
+    String clean = label.trim().toLowerCase();
+    switch (clean) {
       case 'kaca_coklat':
         return 'Kaca Coklat';
       case 'kaca_hijau':
@@ -151,14 +118,16 @@ class WasteClassifier {
         return 'Kaca Putih';
       case 'sisa_makanan':
         return 'Sisa Makanan';
+      case 'buah_busuk':
+        return 'Buah Busuk';
+      case 'kulit_telur':
+        return 'Kulit Telur';
       default:
-        if (clean.isEmpty) return 'Unknown';
         return clean[0].toUpperCase() + clean.substring(1);
     }
   }
 
   void dispose() {
     _interpreter?.close();
-    _isModelLoaded = false;
   }
 }
