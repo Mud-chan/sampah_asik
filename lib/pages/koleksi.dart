@@ -88,7 +88,7 @@ class _KoleksiPageState extends State<KoleksiPage> {
                               ),
                               image: DecorationImage(
                                 image: AssetImage(
-                                  'assets/images/${item['waste_name'].toString().toLowerCase()}.png',
+                                  'assets/images/${imageNameFromWaste(item['waste_name'])}.png',
                                 ),
                                 fit: BoxFit.cover, // 🔥 INI KUNCI
                               ),
@@ -220,6 +220,12 @@ class _KoleksiPageState extends State<KoleksiPage> {
 }
 
 /* ===================== HELPER ===================== */
+String imageNameFromWaste(String name) {
+  return name
+      .toLowerCase()
+      .trim()
+      .replaceAll(' ', '_');
+}
 
 String kategoriDariStar(int stars) {
   if (stars >= 3) return 'Rare';

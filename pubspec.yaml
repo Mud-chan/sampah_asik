@@ -115,6 +115,7 @@ flutter:
     - assets/images/btkembali.png
     - assets/labels.txt
     - assets/sounds/ratdance.mp3
+    - assets/models/modelmulungasikbanget_int8.tflite
 
 
   fonts:

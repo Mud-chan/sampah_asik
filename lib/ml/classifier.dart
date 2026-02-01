@@ -13,7 +13,7 @@ class WasteClassifier {
 
   Future<void> loadModel() async {
     _interpreter = await Interpreter.fromAsset(
-      'assets/models/waste_classifier_int8.tflite',
+      'assets/models/modelmulungasikbanget_int8.tflite',
       options: InterpreterOptions()..threads = 4,
     );
 

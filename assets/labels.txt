@@ -1,11 +1,13 @@
 baju
 baterai
 besi
-kaca_coklat
-kaca_hijau
-kaca_putih
+buah busuk
+kaca coklat
+kaca hijau
+kaca putih
 kardus
 kertas
-plastik
+kulit telur
+plastic
 sepatu
-sisa_makanan
+sisa makanan
