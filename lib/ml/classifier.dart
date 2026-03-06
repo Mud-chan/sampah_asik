@@ -26,7 +26,7 @@ class WasteClassifier {
     _isModelLoaded = true;
   }
 
-  // ======================= SOFTMAX =======================
+  // SOFTMAX untuk mengubah output logit menjadi probabilitas
   List<double> _softmax(List<double> logits) {
     final maxLogit = logits.reduce((a, b) => a > b ? a : b);
     final exps = logits.map((e) => math.exp(e - maxLogit)).toList();
@@ -34,7 +34,7 @@ class WasteClassifier {
     return exps.map((e) => e / sum).toList();
   }
 
-  // ======================= CLASSIFY =======================
+  // CLASSIFY: Ambil gambar, preprocess, jalankan model, dan kembalikan hasil
   Future<Map<String, dynamic>> classifyImage(String imagePath) async {
     final input = await _preprocessImage(imagePath);
 
@@ -46,19 +46,13 @@ class WasteClassifier {
       1,
       (i) => List.filled(outputTensor.shape[1], 0),
     );
-
     _interpreter!.run(input, output);
 
-    // 1. Dequantize INT8 → float
     List<double> dequantized = output[0].map((e) {
       final int v = e as int;
       return (v - zeroPoint) * scale;
     }).toList();
-
-    // 2. Softmax → probabilitas 0.0 – 1.0
     List<double> probabilities = _softmax(dequantized);
-
-    // 3. Ambil confidence terbesar
     double maxConfidence = probabilities[0];
     int maxIndex = 0;
 
@@ -81,7 +75,7 @@ class WasteClassifier {
     };
   }
 
-  // ======================= PREPROCESS =======================
+  // PREPROCESSING: Baca gambar, resize, dan ubah ke format yang sesuai
   Future<List<List<List<List<int>>>>> _preprocessImage(String imagePath) async {
     final imageFile = File(imagePath);
     final bytes = await imageFile.readAsBytes();

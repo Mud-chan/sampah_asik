@@ -22,7 +22,7 @@ class _ScanPageState extends State<ScanPage> {
   bool _isCameraView = true;
   bool _isProcessing = false;
   bool _isModelLoading = true;
-  
+
   // Classifier instance
   late WasteClassifier _classifier;
 
@@ -31,7 +31,7 @@ class _ScanPageState extends State<ScanPage> {
     super.initState();
     _classifier = WasteClassifier();
     _loadModel();
-    
+
     if (widget.cameras.isNotEmpty && !kIsWeb) {
       _controller = CameraController(
         widget.cameras.first,
@@ -45,16 +45,16 @@ class _ScanPageState extends State<ScanPage> {
     setState(() {
       _isModelLoading = true;
     });
-    
+
     try {
       await _classifier.loadModel();
       print('✅ Model berhasil dimuat');
-      
+
       if (mounted) {
         setState(() {
           _isModelLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Model siap digunakan!'),
@@ -65,12 +65,12 @@ class _ScanPageState extends State<ScanPage> {
       }
     } catch (e) {
       print('❌ Error loading model: $e');
-      
+
       if (mounted) {
         setState(() {
           _isModelLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal memuat model: $e'),
@@ -146,12 +146,13 @@ class _ScanPageState extends State<ScanPage> {
 
     try {
       print('🔍 Mulai klasifikasi gambar: ${_imageFile!.path}');
-      
+
       // Klasifikasi gambar
       final result = await _classifier.classifyImage(_imageFile!.path);
-      
-      print('✅ Hasil klasifikasi: ${result['label']} (${result['confidence']})');
-      
+
+      print(
+          '✅ Hasil klasifikasi: ${result['label']} (${result['confidence']})');
+
       setState(() {
         _isProcessing = false;
       });
@@ -169,11 +170,11 @@ class _ScanPageState extends State<ScanPage> {
       );
     } catch (e) {
       print('❌ Error klasifikasi: $e');
-      
+
       setState(() {
         _isProcessing = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error klasifikasi: $e'),
@@ -188,7 +189,7 @@ class _ScanPageState extends State<ScanPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // ✅ Background kamera, hasil foto, atau default image
+          // Background kamera, hasil foto, atau default image
           Positioned.fill(
             child: _isCameraView
                 ? (!kIsWeb && _controller != null)
@@ -233,7 +234,7 @@ class _ScanPageState extends State<ScanPage> {
                       ),
           ),
 
-          // ✅ Loading overlay saat processing
+          // Loading overlay saat processing
           if (_isProcessing || _isModelLoading)
             Container(
               color: Colors.black54,
@@ -246,8 +247,8 @@ class _ScanPageState extends State<ScanPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _isModelLoading 
-                          ? "Memuat model AI..." 
+                      _isModelLoading
+                          ? "Memuat model AI..."
                           : "Mengklasifikasi gambar...",
                       style: const TextStyle(
                         color: Colors.white,
@@ -260,7 +261,7 @@ class _ScanPageState extends State<ScanPage> {
               ),
             ),
 
-          // ✅ Tombol Kamera, Galeri, & Centang
+          // Tombol Kamera, Galeri, & Centang
           Positioned(
             bottom: 40,
             left: 0,
@@ -272,7 +273,9 @@ class _ScanPageState extends State<ScanPage> {
                 children: [
                   // Tombol Kamera
                   GestureDetector(
-                    onTap: (_isProcessing || _isModelLoading) ? null : _takePicture,
+                    onTap: (_isProcessing || _isModelLoading)
+                        ? null
+                        : _takePicture,
                     child: Opacity(
                       opacity: (_isProcessing || _isModelLoading) ? 0.5 : 1.0,
                       child: Column(
@@ -291,7 +294,9 @@ class _ScanPageState extends State<ScanPage> {
 
                   // Tombol Galeri
                   GestureDetector(
-                    onTap: (_isProcessing || _isModelLoading) ? null : _pickFromGallery,
+                    onTap: (_isProcessing || _isModelLoading)
+                        ? null
+                        : _pickFromGallery,
                     child: Opacity(
                       opacity: (_isProcessing || _isModelLoading) ? 0.5 : 1.0,
                       child: Column(
@@ -308,10 +313,12 @@ class _ScanPageState extends State<ScanPage> {
                     ),
                   ),
 
-                  // ✅ Tombol Centang (tampil kalau sudah ada gambar)
+                  // Tombol Centang (tampil kalau sudah ada gambar)
                   if (_imageFile != null)
                     GestureDetector(
-                      onTap: (_isProcessing || _isModelLoading) ? null : _classifyAndNavigate,
+                      onTap: (_isProcessing || _isModelLoading)
+                          ? null
+                          : _classifyAndNavigate,
                       child: Opacity(
                         opacity: (_isProcessing || _isModelLoading) ? 0.5 : 1.0,
                         child: Column(
