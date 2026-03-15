@@ -57,7 +57,7 @@ class _ProfilePageState extends State<ProfilePage> {
               if (!mounted) return;
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/login', // atau '/welcome'
+                '/login',
                 (route) => false,
               );
             },
@@ -138,20 +138,35 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _toggleEdit() async {
-    if (isEdit && oldUsername != null) {
-      // Update username
-      if (oldUsername != usernameController.text) {
-        await DBHelper.updateUsername(
-          oldUsername!,
-          usernameController.text,
+    if (isEdit) {
+      if (usernameController.text.trim().isEmpty ||
+          passwordController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Harap diisi, jangan kosong!'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-        await SessionManager.saveLogin(usernameController.text);
-        oldUsername = usernameController.text;
+        return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil disimpan')),
-      );
+      if (oldUsername != null) {
+        if (oldUsername != usernameController.text) {
+          await DBHelper.updateUsername(
+            oldUsername!,
+            usernameController.text,
+          );
+          await SessionManager.saveLogin(usernameController.text);
+          oldUsername = usernameController.text;
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profil berhasil disimpan')),
+          );
+        }
+      }
     }
 
     setState(() => isEdit = !isEdit);
@@ -164,191 +179,188 @@ class _ProfilePageState extends State<ProfilePage> {
     double progressValue = currentImpact / maxImpact;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // 🌄 Background
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/bg_profile.png',
-              fit: BoxFit.cover,
-            ),
+      // Menggunakan Container dengan decoration sebagai root body agar BG tidak bergeser
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg_profile.png'),
+            fit: BoxFit.cover,
           ),
-
-          Column(
-            children: [
-              const SizedBox(height: 40),
-
-              // 👤 FOTO PROFIL
-              GestureDetector(
-                onTap: _showImagePicker,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.yellow[400],
-                    border: Border.all(color: Colors.yellow, width: 4),
-                    image: DecorationImage(
-                      image: profileImage != null
-                          ? FileImage(profileImage!)
-                          : const AssetImage('assets/images/trash.png')
-                              as ImageProvider,
-                      fit: BoxFit.cover,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            // Agar konten bisa scroll jika layar kecil, tapi BG tetap diam
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                // FOTO PROFIL
+                GestureDetector(
+                  onTap: _showImagePicker,
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.yellow[400],
+                      border: Border.all(color: Colors.yellow, width: 4),
+                      image: DecorationImage(
+                        image: profileImage != null
+                            ? FileImage(profileImage!)
+                            : const AssetImage('assets/images/trash.png')
+                                as ImageProvider,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 🌟 LEVEL BAR
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.yellow[700],
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Column(
-                      children: [
-                        const Text(
-                          'LV',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          '${(progressValue * 10).floor()}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 20),
+                // LEVEL BAR
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow[700],
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Column(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: progressValue,
-                              minHeight: 10,
-                              color: Colors.green,
-                              backgroundColor: Colors.yellow[200],
+                          const Text(
+                            'LV',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
                           ),
-                          const SizedBox(height: 4),
                           Text(
-                            '$currentImpact dampak   max $maxImpact',
-                            style: const TextStyle(fontSize: 12),
+                            '${(progressValue * 10).floor()}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: progressValue,
+                                minHeight: 10,
+                                color: Colors.green,
+                                backgroundColor: Colors.yellow[200],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$currentImpact dampak   max $maxImpact',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.card_giftcard),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // INPUT FIELD
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Column(
+                    children: [
+                      _inputField(
+                        'Username',
+                        usernameController,
+                        enabled: isEdit,
+                      ),
+                      const SizedBox(height: 15),
+                      _inputField(
+                        'Password',
+                        passwordController,
+                        enabled: isEdit,
+                        obscure: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // TOMBOL EDIT / SIMPAN
+                ElevatedButton(
+                  onPressed: _toggleEdit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5C5C),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 80,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.card_giftcard),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // ✏️ FORM
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Column(
-                  children: [
-                    _inputField(
-                      'Username',
-                      usernameController,
-                      enabled: isEdit,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    const SizedBox(height: 15),
-                    _inputField(
-                      'Password',
-                      passwordController,
-                      enabled: isEdit,
-                      obscure: true,
+                  ),
+                  child: Text(
+                    isEdit ? 'Simpan' : 'Edit',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      color: Colors.white,
+                      fontFamily: 'CherryBomb',
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // 🔴 TOMBOL EDIT / SIMPAN
-              ElevatedButton(
-                onPressed: _toggleEdit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5C5C),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 80,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: Text(
-                  isEdit ? 'Simpan' : 'Edit',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    color: Colors.white,
-                    fontFamily: 'CherryBomb',
+                const SizedBox(height: 20),
+                // TOMBOL LOGOUT
+                ElevatedButton(
+                  onPressed: _confirmLogout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 70,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    'Logout',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.white,
+                      fontFamily: 'CherryBomb',
+                    ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-// 🚪 TOMBOL LOGOUT
-              ElevatedButton(
-                onPressed: _confirmLogout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black87,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 70,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Logout',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: Colors.white,
-                    fontFamily: 'CherryBomb',
-                  ),
-                ),
-              ),
-            ],
+                const SizedBox(
+                    height:
+                        40), // Jarak tambahan di bawah agar tidak terpotong navbar
+              ],
+            ),
           ),
-        ],
+        ),
       ),
-
-      // 🧭 NAV BAR
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFFFFD72E),
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black54,
-        currentIndex: 2, // ← karena ini halaman Profile
+        currentIndex: 2,
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/home');

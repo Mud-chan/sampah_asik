@@ -13,21 +13,42 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordController = TextEditingController();
 
   void _register() async {
+    // VALIDASI: Cek apakah username atau password kosong
+    if (usernameController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap diisi, jangan kosong!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return; // Berhenti jika ada kolom yang kosong
+    }
+
     try {
       await DBHelper.register(
         usernameController.text,
         passwordController.text,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrasi berhasil')),
-      );
-
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registrasi berhasil'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username sudah terdaftar')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Username sudah terdaftar'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -76,6 +97,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       color: Colors.white,
                       fontFamily: 'CherryBomb',
                     ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Sudah punya akun? Login",
+                    style: TextStyle(color: Colors.black54),
                   ),
                 ),
               ],

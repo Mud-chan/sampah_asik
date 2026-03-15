@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../database/db_helper.dart';
 import '../utils/session_manager.dart';
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -15,6 +14,19 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   void _login() async {
+    // VALIDASI: Cek apakah username atau password kosong
+    if (usernameController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap diisi, jangan kosong!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return; // Berhenti jika ada yang kosong
+    }
+
     final success = await DBHelper.login(
       usernameController.text,
       passwordController.text,
@@ -22,11 +34,15 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success) {
       await SessionManager.saveLogin(usernameController.text);
-      Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username atau Password salah')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username atau Password salah')),
+        );
+      }
     }
   }
 
@@ -49,13 +65,10 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 _inputField("Username", usernameController),
                 const SizedBox(height: 15),
                 _inputField("Password", passwordController, isPassword: true),
-
                 const SizedBox(height: 30),
-
                 ElevatedButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(
@@ -77,9 +90,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
