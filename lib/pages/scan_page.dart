@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' as ui; // Import untuk capture layar
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; // Import untuk RenderRepaintBoundary
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img; // Import untuk pemrosesan gambar
@@ -25,15 +27,18 @@ class _ScanPageState extends State<ScanPage> {
   bool _isProcessing = false;
   bool _isModelLoading = true;
 
-  // Variabel untuk fitur Fokus
+  // Variabel untuk fitur Fokus Kamera
   Offset? _tapPosition;
   bool _showFocusCircle = false;
 
-  // Variabel untuk fitur Zoom
+  // Variabel untuk fitur Zoom Kamera
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
   double _maxZoomLevel = 1.0;
   double _baseZoomLevel = 1.0;
+
+  // Key untuk capture area gambar yang di-crop
+  final GlobalKey _cropKey = GlobalKey();
 
   // Classifier instance
   late WasteClassifier _classifier;
@@ -51,7 +56,6 @@ class _ScanPageState extends State<ScanPage> {
         enableAudio: false,
       );
       _initializeControllerFuture = _controller!.initialize().then((_) async {
-        // Ambil batas zoom kamera setelah inisialisasi
         if (mounted) {
           _minZoomLevel = await _controller!.getMinZoomLevel();
           _maxZoomLevel = await _controller!.getMaxZoomLevel();
@@ -97,7 +101,6 @@ class _ScanPageState extends State<ScanPage> {
     });
   }
 
-  // Fungsi untuk menangani Zoom
   Future<void> _handleScaleStart(ScaleStartDetails details) async {
     _baseZoomLevel = _currentZoomLevel;
   }
@@ -120,59 +123,55 @@ class _ScanPageState extends State<ScanPage> {
     super.dispose();
   }
 
-  // Fungsi untuk Memotong dan Mencerahkan Gambar
-  Future<XFile?> _processImage(XFile capturedFile) async {
+  // FUNGSI BARU: Mengambil screenshot dari area gambar yang digeser/dizoom, lalu dicrop & dicerahkan
+  Future<XFile?> _captureAndProcess() async {
     try {
-      final bytes = await File(capturedFile.path).readAsBytes();
-      img.Image? originalImage = img.decodeImage(bytes);
+      if (_cropKey.currentContext == null) return null;
 
-      if (originalImage == null) return null;
+      // 1. Capture layar dari gambar yang sudah diposisikan pengguna
+      RenderRepaintBoundary boundary = _cropKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      double pixelRatio = 2.0; // Agar resolusi lebih tajam
+      ui.Image capturedUiImage = await boundary.toImage(pixelRatio: pixelRatio);
+      ByteData? byteData = await capturedUiImage.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-      int width = originalImage.width;
-      int height = originalImage.height;
+      // 2. Decode gambar hasil capture
+      img.Image? decodedImage = img.decodeImage(pngBytes);
+      if (decodedImage == null) return null;
 
-      // 1. CROP: Tentukan porsi tengah gambar
-      int cropSize = (width < height ? width : height); 
-      int size = (cropSize * 0.7).toInt(); 
-      int x = (width - size) ~/ 2;
-      int y = (height - size) ~/ 2;
+      // 3. Potong (Crop) TEPAT di area tengah 250x250 sesuai panduan UI
+      int cropSize = (250 * pixelRatio).toInt();
+      int x = (decodedImage.width - cropSize) ~/ 2;
+      int y = (decodedImage.height - cropSize) ~/ 2;
 
-      img.Image croppedImage = img.copyCrop(originalImage, x: x, y: y, width: size, height: size);
+      img.Image croppedImage = img.copyCrop(decodedImage, x: x, y: y, width: cropSize, height: cropSize);
 
-      // 2. MENCERAHKAN (BRIGHTEN): Tambah kecerahan 20% (brightness = 1.2)
-      // Ini akan membuat gambar yang agak gelap jadi lebih mudah dideteksi AI
+      // 4. Mencerahkan gambar (Brightness +20%)
       img.Image finalImage = img.adjustColor(croppedImage, brightness: 1.2);
 
-      // Simpan hasil ke memori agar bisa dipakai oleh klasifikasi dan UI
+      // 5. Simpan file hasil proses
       final directory = await getTemporaryDirectory();
       final path = '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
       File(path).writeAsBytesSync(img.encodeJpg(finalImage));
 
       return XFile(path);
     } catch (e) {
-      debugPrint("Error saat memproses gambar: $e");
-      return capturedFile; 
+      debugPrint("Error saat memproses capture gambar: $e");
+      return null;
     }
   }
 
   Future<void> _takePicture() async {
     if (kIsWeb) return;
     try {
-      setState(() => _isProcessing = true); 
       await _initializeControllerFuture;
-      
       final rawImage = await _controller!.takePicture();
       
-      // Lakukan pemrosesan (Crop + Pencerahan)
-      final processedImg = await _processImage(rawImage);
-
       setState(() {
-        _imageFile = processedImg ?? rawImage;
+        _imageFile = rawImage;
         _isCameraView = false;
-        _isProcessing = false;
       });
     } catch (e) {
-      setState(() => _isProcessing = false);
       debugPrint("Error mengambil foto: $e");
     }
   }
@@ -180,15 +179,9 @@ class _ScanPageState extends State<ScanPage> {
   Future<void> _pickFromGallery() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() => _isProcessing = true); // Tampilkan loading
-      
-      // Kita juga bisa memproses gambar dari galeri (crop & cerahkan)
-      final processedImg = await _processImage(pickedFile);
-      
       setState(() {
-        _imageFile = processedImg ?? pickedFile;
+        _imageFile = pickedFile;
         _isCameraView = false;
-        _isProcessing = false;
       });
     }
   }
@@ -199,7 +192,11 @@ class _ScanPageState extends State<ScanPage> {
 
     setState(() => _isProcessing = true);
     try {
-      final result = await _classifier.classifyImage(_imageFile!.path);
+      // PROSES GAMBAR KETIKA TOMBOL ANALISIS DITEKAN
+      final processedFile = await _captureAndProcess();
+      final fileToAnalyze = processedFile ?? _imageFile!;
+
+      final result = await _classifier.classifyImage(fileToAnalyze.path);
       setState(() => _isProcessing = false);
 
       if (mounted) {
@@ -207,7 +204,7 @@ class _ScanPageState extends State<ScanPage> {
           context,
           MaterialPageRoute(
             builder: (context) => HasilPage(
-              imagePath: _imageFile!.path,
+              imagePath: fileToAnalyze.path, // Tampilkan hasil gambar yang sudah di-crop
               wasteType: result['label'],
               confidence: result['confidence'],
             ),
@@ -225,7 +222,7 @@ class _ScanPageState extends State<ScanPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Pratinjau Kamera / Gambar
+          // KONTEN UTAMA
           Positioned.fill(
             child: _isCameraView
                 ? (!kIsWeb && _controller != null)
@@ -253,7 +250,7 @@ class _ScanPageState extends State<ScanPage> {
                                       ),
                                     ),
 
-                                    // Indikator Zoom
+                                    // Indikator Zoom Kamera
                                     if (_currentZoomLevel > 1.0)
                                       Positioned(
                                         top: 50,
@@ -271,7 +268,7 @@ class _ScanPageState extends State<ScanPage> {
                                         ),
                                       ),
 
-                                    // 1. Kotak Panduan Statis
+                                    // Kotak Panduan Kamera
                                     Center(
                                       child: Container(
                                         width: 250,
@@ -293,7 +290,7 @@ class _ScanPageState extends State<ScanPage> {
                                       ),
                                     ),
 
-                                    // 2. Indikator Kotak Fokus
+                                    // Indikator Titik Fokus
                                     if (_showFocusCircle && _tapPosition != null)
                                       Positioned(
                                         left: _tapPosition!.dx - 35,
@@ -318,21 +315,77 @@ class _ScanPageState extends State<ScanPage> {
                       )
                     : Image.asset('assets/images/home_bg.png', fit: BoxFit.cover)
                 : _imageFile != null
-                    ? Center(
-                        child: Container(
-                          width: 300,
-                          height: 300,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.greenAccent, width: 3),
-                            borderRadius: BorderRadius.circular(20),
+                    // UI PREVIEW GAMBAR INTERAKTIF (CROPPER)
+                    ? Stack(
+                        children: [
+                          // 1. Gambar yang bisa digeser dan dizoom (dibungkus RepaintBoundary)
+                          Positioned.fill(
+                            child: RepaintBoundary(
+                              key: _cropKey,
+                              child: Container(
+                                color: Colors.black, // Background belakang gambar
+                                child: InteractiveViewer(
+                                  minScale: 0.1,
+                                  maxScale: 5.0,
+                                  boundaryMargin: const EdgeInsets.all(double.infinity),
+                                  child: Center(
+                                    child: kIsWeb
+                                        ? Image.network(_imageFile!.path)
+                                        : Image.file(File(_imageFile!.path)),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(17),
-                            child: kIsWeb
-                                ? Image.network(_imageFile!.path, fit: BoxFit.cover)
-                                : Image.file(File(_imageFile!.path), fit: BoxFit.cover),
+                          // 2. Overlay Gelap Berlubang (Hole Punch)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: ColorFiltered(
+                                colorFilter: const ColorFilter.mode(
+                                  Colors.black54,
+                                  BlendMode.srcOut,
+                                ),
+                                child: Container(
+                                  color: Colors.transparent,
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: 250,
+                                      height: 250,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black, // Bagian ini akan menjadi bolong transparan
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          // 3. Garis Kotak Panduan Crop
+                          Center(
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 250,
+                                height: 250,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.greenAccent, width: 2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      "Geser & Zoom Pas di Sini",
+                                      style: TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                     : Image.asset('assets/images/home_bg.png', fit: BoxFit.cover),
           ),
@@ -350,7 +403,7 @@ class _ScanPageState extends State<ScanPage> {
                     Text(
                       _isModelLoading 
                           ? "Memuat model AI..." 
-                          : (_isCameraView ? "Memproses gambar..." : "Menganalisis objek..."),
+                          : "Menganalisis objek...",
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],
