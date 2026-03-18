@@ -122,6 +122,17 @@ flutter:
     - assets/images/amba.gif
     - assets/images/hapusbt.png
     - assets/images/btkembali.png
+    - assets/images/notifbtsimpan.png
+    - assets/images/notifbtsabaikan.png
+    - assets/images/notifparam.png
+    - assets/images/notifbintang.png
+    - assets/images/btbuang.png
+    - assets/images/notifbtbuang.png
+    - assets/images/notifcamera.png
+    - assets/images/notifedit.png
+    - assets/images/notifavatar.png
+    - assets/images/notifzoom.png
+    - assets/images/notifgaleri.png
     - assets/sounds/ratdance.mp3
 
   fonts:

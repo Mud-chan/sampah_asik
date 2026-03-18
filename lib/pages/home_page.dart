@@ -13,7 +13,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String username = 'Player';
-  
+
   File? profileImage;
   Future<void> _loadProfileImage() async {
     final username = await SessionManager.getUsername();
@@ -53,6 +53,56 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       username = name ?? 'Player';
     });
+  }
+
+  // ===================== DIALOG BANTUAN (?) =====================
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFFE8D6AB), // Warna krem
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SizedBox(
+          // Tinggi dialog lebih pendek karena isinya lebih sedikit
+          height: MediaQuery.of(context).size.height * 0.50,
+          child: Column(
+            children: [
+              // Tombol silang di kiri atas
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  padding: const EdgeInsets.only(left: 15, top: 15),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 35),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              // Area Scrollable untuk Konten
+              Expanded(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    children: [
+                     
+                      // Penjelasan Kamera (Ramah Anak)
+                      Image.asset('assets/images/notifcamera.png', width: 150),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Tekan tombol kamera ini untuk memotret dan memindai sampahmu. Yuk, cari tahu jenis sampahnya dan kumpulkan poinnya!",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -187,6 +237,27 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // Tombol Tanda Tanya (?) di Bawah Level Bar (Pojok Kanan)
+          Positioned(
+            top: 20, // Ditaruh sedikit di bawah bar level
+            right: 20,
+            child: GestureDetector(
+              onTap: () => _showHelpDialog(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD72E).withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.help_outline,
+                  color: Colors.black87,
+                  size: 30,
+                ),
+              ),
             ),
           ),
 

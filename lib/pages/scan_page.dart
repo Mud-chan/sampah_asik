@@ -52,7 +52,7 @@ class _ScanPageState extends State<ScanPage> {
     if (widget.cameras.isNotEmpty && !kIsWeb) {
       _controller = CameraController(
         widget.cameras.first,
-        ResolutionPreset.high, 
+        ResolutionPreset.high,
         enableAudio: false,
       );
       _initializeControllerFuture = _controller!.initialize().then((_) async {
@@ -76,8 +76,11 @@ class _ScanPageState extends State<ScanPage> {
     }
   }
 
-  Future<void> _handleTapToFocus(TapDownDetails details, BoxConstraints constraints) async {
-    if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
+  Future<void> _handleTapToFocus(
+      TapDownDetails details, BoxConstraints constraints) async {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _isProcessing) return;
 
     final offset = Offset(
       details.localPosition.dx / constraints.maxWidth,
@@ -106,9 +109,12 @@ class _ScanPageState extends State<ScanPage> {
   }
 
   Future<void> _handleScaleUpdate(ScaleUpdateDetails details) async {
-    if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _isProcessing) return;
 
-    double newZoom = (_baseZoomLevel * details.scale).clamp(_minZoomLevel, _maxZoomLevel);
+    double newZoom =
+        (_baseZoomLevel * details.scale).clamp(_minZoomLevel, _maxZoomLevel);
 
     if (newZoom != _currentZoomLevel) {
       setState(() => _currentZoomLevel = newZoom);
@@ -129,10 +135,12 @@ class _ScanPageState extends State<ScanPage> {
       if (_cropKey.currentContext == null) return null;
 
       // 1. Capture layar dari gambar yang sudah diposisikan pengguna
-      RenderRepaintBoundary boundary = _cropKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      RenderRepaintBoundary boundary =
+          _cropKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       double pixelRatio = 2.0; // Agar resolusi lebih tajam
       ui.Image capturedUiImage = await boundary.toImage(pixelRatio: pixelRatio);
-      ByteData? byteData = await capturedUiImage.toByteData(format: ui.ImageByteFormat.png);
+      ByteData? byteData =
+          await capturedUiImage.toByteData(format: ui.ImageByteFormat.png);
       Uint8List pngBytes = byteData!.buffer.asUint8List();
 
       // 2. Decode gambar hasil capture
@@ -144,14 +152,16 @@ class _ScanPageState extends State<ScanPage> {
       int x = (decodedImage.width - cropSize) ~/ 2;
       int y = (decodedImage.height - cropSize) ~/ 2;
 
-      img.Image croppedImage = img.copyCrop(decodedImage, x: x, y: y, width: cropSize, height: cropSize);
+      img.Image croppedImage = img.copyCrop(decodedImage,
+          x: x, y: y, width: cropSize, height: cropSize);
 
       // 4. Mencerahkan gambar (Brightness +20%)
       img.Image finalImage = img.adjustColor(croppedImage, brightness: 1.2);
 
       // 5. Simpan file hasil proses
       final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path =
+          '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
       File(path).writeAsBytesSync(img.encodeJpg(finalImage));
 
       return XFile(path);
@@ -166,7 +176,7 @@ class _ScanPageState extends State<ScanPage> {
     try {
       await _initializeControllerFuture;
       final rawImage = await _controller!.takePicture();
-      
+
       setState(() {
         _imageFile = rawImage;
         _isCameraView = false;
@@ -177,7 +187,8 @@ class _ScanPageState extends State<ScanPage> {
   }
 
   Future<void> _pickFromGallery() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = pickedFile;
@@ -204,7 +215,8 @@ class _ScanPageState extends State<ScanPage> {
           context,
           MaterialPageRoute(
             builder: (context) => HasilPage(
-              imagePath: fileToAnalyze.path, // Tampilkan hasil gambar yang sudah di-crop
+              imagePath: fileToAnalyze
+                  .path, // Tampilkan hasil gambar yang sudah di-crop
               wasteType: result['label'],
               confidence: result['confidence'],
             ),
@@ -214,6 +226,77 @@ class _ScanPageState extends State<ScanPage> {
     } catch (e) {
       setState(() => _isProcessing = false);
     }
+  }
+
+  // ===================== DIALOG BANTUAN (?) =====================
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFFE8D6AB), // Warna krem
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SizedBox(
+          // Tinggi dialog dibatasi agar bisa di-scroll
+          height: MediaQuery.of(context).size.height * 0.65,
+          child: Column(
+            children: [
+              // Tombol silang di kiri atas
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  padding: const EdgeInsets.only(left: 15, top: 15),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 35),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              // Area Scrollable untuk Konten
+              Expanded(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    children: [
+                      // Penjelasan Tombol Kamera
+                      Image.asset('assets/images/notifcamera.png', width: 140),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Klik tombol kamera untuk ambil foto lewat kamera pastikan object ada di kotak object",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Penjelasan Zoom / Geser Jari
+                      Image.asset('assets/images/notifzoom.png', width: 140),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Pakai 2 jari untuk zoom pada kamera dan juga untuk menggeser gambar yang kamu pilih dari galeri",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Penjelasan Tombol Galeri
+                      Image.asset('assets/images/notifgaleri.png', width: 140),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Klik icon galeri untuk memilih gambar dari galerimu",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -229,14 +312,19 @@ class _ScanPageState extends State<ScanPage> {
                     ? FutureBuilder<void>(
                         future: _initializeControllerFuture,
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.done) {
-                            return LayoutBuilder(builder: (context, constraints) {
-                              var scale = 1 / (_controller!.value.aspectRatio * MediaQuery.of(context).size.aspectRatio);
+                          if (snapshot.connectionState ==
+                              ConnectionState.done) {
+                            return LayoutBuilder(
+                                builder: (context, constraints) {
+                              var scale = 1 /
+                                  (_controller!.value.aspectRatio *
+                                      MediaQuery.of(context).size.aspectRatio);
                               if (scale < 1) scale = 1 / scale;
 
                               return GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onTapDown: (details) => _handleTapToFocus(details, constraints),
+                                onTapDown: (details) =>
+                                    _handleTapToFocus(details, constraints),
                                 onScaleStart: _handleScaleStart,
                                 onScaleUpdate: _handleScaleUpdate,
                                 child: Stack(
@@ -253,17 +341,21 @@ class _ScanPageState extends State<ScanPage> {
                                     // Indikator Zoom Kamera
                                     if (_currentZoomLevel > 1.0)
                                       Positioned(
-                                        top: 50,
+                                        top:
+                                            100, // Diubah top-nya agar tidak menabrak tombol bantuan
                                         right: 20,
                                         child: Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: Colors.black45,
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                           ),
                                           child: Text(
                                             "${_currentZoomLevel.toStringAsFixed(1)}x",
-                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       ),
@@ -274,8 +366,12 @@ class _ScanPageState extends State<ScanPage> {
                                         width: 250,
                                         height: 250,
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                              color:
+                                                  Colors.white.withOpacity(0.5),
+                                              width: 2),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         child: const Align(
                                           alignment: Alignment.topCenter,
@@ -283,7 +379,9 @@ class _ScanPageState extends State<ScanPage> {
                                             padding: EdgeInsets.only(top: 8),
                                             child: Text(
                                               "Posisikan Objek di Sini",
-                                              style: TextStyle(color: Colors.white, fontSize: 12),
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12),
                                             ),
                                           ),
                                         ),
@@ -291,7 +389,8 @@ class _ScanPageState extends State<ScanPage> {
                                     ),
 
                                     // Indikator Titik Fokus
-                                    if (_showFocusCircle && _tapPosition != null)
+                                    if (_showFocusCircle &&
+                                        _tapPosition != null)
                                       Positioned(
                                         left: _tapPosition!.dx - 35,
                                         top: _tapPosition!.dy - 35,
@@ -299,8 +398,10 @@ class _ScanPageState extends State<ScanPage> {
                                           width: 70,
                                           height: 70,
                                           decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.yellow, width: 2),
-                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                                color: Colors.yellow, width: 2),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                           ),
                                         ),
                                       ),
@@ -309,11 +410,13 @@ class _ScanPageState extends State<ScanPage> {
                               );
                             });
                           } else {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                                child: CircularProgressIndicator());
                           }
                         },
                       )
-                    : Image.asset('assets/images/home_bg.png', fit: BoxFit.cover)
+                    : Image.asset('assets/images/home_bg.png',
+                        fit: BoxFit.cover)
                 : _imageFile != null
                     // UI PREVIEW GAMBAR INTERAKTIF (CROPPER)
                     ? Stack(
@@ -323,11 +426,13 @@ class _ScanPageState extends State<ScanPage> {
                             child: RepaintBoundary(
                               key: _cropKey,
                               child: Container(
-                                color: Colors.black, // Background belakang gambar
+                                color:
+                                    Colors.black, // Background belakang gambar
                                 child: InteractiveViewer(
                                   minScale: 0.1,
                                   maxScale: 5.0,
-                                  boundaryMargin: const EdgeInsets.all(double.infinity),
+                                  boundaryMargin:
+                                      const EdgeInsets.all(double.infinity),
                                   child: Center(
                                     child: kIsWeb
                                         ? Image.network(_imageFile!.path)
@@ -353,7 +458,8 @@ class _ScanPageState extends State<ScanPage> {
                                       width: 250,
                                       height: 250,
                                       decoration: BoxDecoration(
-                                        color: Colors.black, // Bagian ini akan menjadi bolong transparan
+                                        color: Colors
+                                            .black, // Bagian ini akan menjadi bolong transparan
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                     ),
@@ -369,7 +475,8 @@ class _ScanPageState extends State<ScanPage> {
                                 width: 250,
                                 height: 250,
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.greenAccent, width: 2),
+                                  border: Border.all(
+                                      color: Colors.greenAccent, width: 2),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Align(
@@ -378,7 +485,8 @@ class _ScanPageState extends State<ScanPage> {
                                     padding: EdgeInsets.only(top: 8),
                                     child: Text(
                                       "Geser & Zoom Pas di Sini",
-                                      style: TextStyle(color: Colors.white, fontSize: 12),
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 12),
                                     ),
                                   ),
                                 ),
@@ -387,7 +495,33 @@ class _ScanPageState extends State<ScanPage> {
                           ),
                         ],
                       )
-                    : Image.asset('assets/images/home_bg.png', fit: BoxFit.cover),
+                    : Image.asset('assets/images/home_bg.png',
+                        fit: BoxFit.cover),
+          ),
+
+          // 🔘 Tombol Tanda Tanya (?) di Pojok Kanan Atas
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 15, right: 20),
+                child: GestureDetector(
+                  onTap: () => _showHelpDialog(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.help_outline,
+                      color: Colors.black87,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
 
           // Overlay Loading
@@ -401,10 +535,11 @@ class _ScanPageState extends State<ScanPage> {
                     const CircularProgressIndicator(color: Colors.white),
                     const SizedBox(height: 16),
                     Text(
-                      _isModelLoading 
-                          ? "Memuat model AI..." 
+                      _isModelLoading
+                          ? "Memuat model AI..."
                           : "Menganalisis objek...",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -429,7 +564,7 @@ class _ScanPageState extends State<ScanPage> {
                       setState(() {
                         _isCameraView = true;
                         _imageFile = null;
-                        _currentZoomLevel = 1.0; 
+                        _currentZoomLevel = 1.0;
                       });
                     }
                   },

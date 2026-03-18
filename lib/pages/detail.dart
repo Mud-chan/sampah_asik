@@ -256,7 +256,7 @@ class DetailPage extends StatelessWidget {
     Navigator.pushReplacementNamed(context, '/home');
   }
 
-// ===================== DIALOG =====================
+  // ===================== DIALOG DISIMPAN =====================
   void _showSavedDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -282,6 +282,90 @@ class DetailPage extends StatelessWidget {
                   Navigator.pushReplacementNamed(context, '/home');
                 },
                 child: Image.asset('assets/images/tutupbt.png', width: 120),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===================== DIALOG BANTUAN (?) =====================
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFFE8D6AB), // Warna krem sesuai gambar
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SizedBox(
+          // Tinggi dialog dibatasi sekitar 65% layar (separo) agar bisa di-scroll
+          height: MediaQuery.of(context).size.height * 0.65,
+          child: Column(
+            children: [
+              // Tombol silang di kiri atas
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  padding: const EdgeInsets.only(left: 15, top: 15),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 35),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              // Area Scrollable untuk Konten
+              Expanded(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    children: [
+                      // Penjelasan Bintang
+                      Image.asset('assets/images/notifbintang.png', width: 150),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Jumlah Bintang Menunjukkan kelangkaan dari sampah semakin banyak bintang mana semakin langka",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Penjelasan Parameter
+                      Image.asset('assets/images/notifparam.png', width: 250),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Parameter di atas menjelaskan seberapa besar dampak sampah, peluang untuk didaur ulang, serta tindakan yang perlu dilakukan untuk mengelolanya dengan baik.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Penjelasan Tombol Abaikan
+                      Image.asset('assets/images/notifbtsabaikan.png',
+                          width: 160),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Tombol abaikan Berfungsi Untuk Kembali ke menu beranda",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 25),
+
+                      // Penjelasan Tombol Simpan
+                      Image.asset('assets/images/notifbtsimpan.png',
+                          width: 160),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Tombol simpan berfungsi untuk menyimpan sampah mu",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -316,6 +400,27 @@ class DetailPage extends StatelessWidget {
                 'assets/images/kuningbawahdetail.png',
                 fit: BoxFit.cover,
                 width: double.infinity,
+              ),
+            ),
+          ),
+
+          // Tombol Tanda Tanya (?) di Pojok Kanan Atas
+          Positioned(
+            top: 45,
+            right: 20,
+            child: GestureDetector(
+              onTap: () => _showHelpDialog(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.help_outline,
+                  color: Colors.black87,
+                  size: 30,
+                ),
               ),
             ),
           ),
@@ -393,22 +498,7 @@ class DetailPage extends StatelessWidget {
               children: [
                 // ================= ABAIKAN =================
                 GestureDetector(
-                  onTap: () async {
-                    final username = await SessionManager.getUsername();
-                    if (username == null) return;
-
-                    // HITUNG EXP DARI STARS
-                    int exp = stars == 3
-                        ? 3000
-                        : stars == 2
-                            ? 2000
-                            : 1000;
-
-                    // ❗ HANYA SIMPAN EXP
-                    await DBHelper.addExp(username, exp);
-
-                    Navigator.pushReplacementNamed(context, '/home');
-                  },
+                  onTap: () => _handleIgnore(context, stars),
                   child: Image.asset(
                     'assets/images/abaikanbt.png',
                     width: 170,
@@ -419,29 +509,7 @@ class DetailPage extends StatelessWidget {
 
                 // ================= SIMPAN =================
                 GestureDetector(
-                  onTap: () async {
-                    final username = await SessionManager.getUsername();
-                    if (username == null) return;
-
-                    // HITUNG EXP DARI STARS
-                    int exp = stars == 3
-                        ? 3000
-                        : stars == 2
-                            ? 2000
-                            : 1000;
-
-                    // ✅ SIMPAN EXP
-                    await DBHelper.addExp(username, exp);
-
-                    // ✅ SIMPAN NAMA SAMPAH + STARS
-                    await DBHelper.saveWaste(
-                      username: username,
-                      wasteName: name,
-                      stars: stars,
-                    );
-
-                    _showSavedDialog(context);
-                  },
+                  onTap: () => _handleSave(context, name, stars),
                   child: Image.asset(
                     'assets/images/simpanbt.png',
                     width: 170,
