@@ -38,21 +38,16 @@ class DetailKoleksiPage extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ❌ BATAL
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child:
                         Image.asset('assets/images/abaikanbt.png', width: 120),
                   ),
-
                   const SizedBox(width: 20),
-
-                  // 🗑️ BUANG
                   GestureDetector(
                     onTap: () async {
-                      await DBHelper.deleteWaste(id); // 🔥 HAPUS SATU ITEM SAJA
-
-                      Navigator.pop(context); // tutup dialog
+                      await DBHelper.deleteWaste(id);
+                      Navigator.pop(context);
                       Navigator.pushReplacementNamed(context, '/koleksi');
                     },
                     child: Image.asset('assets/images/hapusbt.png', width: 120),
@@ -68,70 +63,95 @@ class DetailKoleksiPage extends StatelessWidget {
 
   // ===================== DIALOG BANTUAN (?) =====================
   void _showHelpDialog(BuildContext context) {
+    String starLabel = "";
+
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFFE8D6AB), // Warna krem sesuai gambar
+        backgroundColor: const Color(0xFFE8D6AB),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: SizedBox(
-          // Tinggi dialog dibatasi sekitar 65% layar (separo) agar bisa di-scroll
-          height: MediaQuery.of(context).size.height * 0.65, 
+          height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             children: [
-              // Tombol silang di kiri atas
               Align(
                 alignment: Alignment.topLeft,
                 child: IconButton(
-                  padding: const EdgeInsets.only(left: 15, top: 15),
-                  icon: const Icon(Icons.close, color: Colors.red, size: 35),
+                  padding: const EdgeInsets.all(15),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 30),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
-              // Area Scrollable untuk Konten
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      // Penjelasan Bintang
-                      Image.asset('assets/images/notifbintang.png', width: 150),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Jumlah Bintang Menunjukkan kelangkaan dari sampah semakin banyak bintang mana semakin langka",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
-                      const SizedBox(height: 25),
+                      // SEKSI BINTANG
+                      Image.asset('assets/images/notifbintang.png', width: 120),
+                      const SizedBox(height: 5),
 
-                      // Penjelasan Parameter
-                      Image.asset('assets/images/notifparam.png', width: 250),
-                      const SizedBox(height: 10),
                       const Text(
-                        "Parameter di atas menjelaskan seberapa besar dampak sampah, peluang untuk didaur ulang, serta tindakan yang perlu dilakukan untuk mengelolanya dengan baik.",
+                        "Semakin banyak bintang, maka sampah tersebut semakin sulit untuk dikoleksi.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: TextStyle(fontSize: 12),
                       ),
-                      const SizedBox(height: 25),
+                      const Divider(height: 40, color: Colors.black26),
 
-                      // Penjelasan Tombol Abaikan/Kembali
-                      Image.asset('assets/images/notifbtsabaikan.png', width: 160),
+                      // SEKSI PARAMETER 1: DAMPAK
+                      _buildHelpParameter(
+                        "Dampak Lingkungan",
+                        80,
+                        "Semakin tinggi angkanya, maka semakin besar kerusakan yang ditimbulkan sampah ini terhadap alam.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 2: DAUR ULANG
+                      _buildHelpParameter(
+                        "Tingkat Daur Ulang",
+                        40,
+                        "Semakin tinggi angkanya, maka sampah ini semakin mudah untuk diolah kembali menjadi barang berguna.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 3: CAKUPAN
+                      _buildHelpParameter(
+                        "Cakupan Pengaruh",
+                        60,
+                        "Menunjukkan seberapa luas area yang dapat tercemar jika sampah ini tidak dikelola dengan benar.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 4: AKSI
+                      _buildHelpParameter(
+                        "Aksi Pengelolaan",
+                        90,
+                        "Semakin tinggi angkanya, semakin banyak tindakan nyata yang perlu kamu lakukan untuk mengatasinya.",
+                      ),
+                      const SizedBox(height: 30),
+                      const Divider(height: 40, color: Colors.black26),
+
+                      // SEKSI TOMBOL (DIKEMBALIKAN)
+                      Image.asset('assets/images/notifbtsabaikan.png',
+                          width: 160),
                       const SizedBox(height: 10),
                       const Text(
                         "Tombol ini berfungsi untuk kembali ke menu koleksi",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 25),
 
-                      // Penjelasan Tombol Simpan/Buang
                       Image.asset('assets/images/notifbtbuang.png', width: 160),
                       const SizedBox(height: 10),
                       const Text(
                         "Tombol ini berfungsi untuk menghapus sampah dari daftar koleksimu",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -140,6 +160,21 @@ class DetailKoleksiPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHelpParameter(String title, int value, String desc) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildProgressBar(title, value),
+        const SizedBox(height: 8),
+        Text(
+          desc,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 
@@ -170,7 +205,7 @@ class DetailKoleksiPage extends StatelessWidget {
             ),
           ),
 
-          // Tombol Tanda Tanya (?) di Pojok Kanan Atas
+          // Help Button
           Positioned(
             top: 45,
             right: 20,
@@ -182,32 +217,50 @@ class DetailKoleksiPage extends StatelessWidget {
                   color: Colors.white.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.help_outline,
-                  color: Colors.black87,
-                  size: 30,
-                ),
+                child: const Icon(Icons.help_outline,
+                    color: Colors.black87, size: 30),
               ),
             ),
           ),
 
+          // Stars & Rare Text
           Positioned(
             top: 40,
-            child: Image.asset('assets/images/bintang$stars.png', width: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/bintang$stars.png', width: 200),
+                // Menggunakan Transform.translate untuk menarik teks ke atas agar lebih dekat dengan gambar
+                Transform.translate(
+                  offset: const Offset(0, -15),
+                  child: Text(
+                    stars == 3
+                        ? "Langka"
+                        : (stars == 2 ? "Lumayan Sulit" : "Mudah Ditemukan"),
+                    style: const TextStyle(
+                      fontWeight:
+                          FontWeight.w900, // Membuat tulisan jauh lebih bold
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                )
+              ],
+            ),
           ),
 
           Positioned(
-            top: 180,
+            top: 210,
             child: Image.asset('assets/images/lingkaranbwah.png', width: 230),
           ),
 
           Positioned(
-            top: 120,
+            top: 140,
             child: Image.asset('assets/images/$image', width: 150),
           ),
 
           Positioned(
-            top: 300,
+            top: 315,
             left: 30,
             right: 30,
             child: Column(
@@ -227,11 +280,16 @@ class DetailKoleksiPage extends StatelessWidget {
                 ),
                 Text(impact, textAlign: TextAlign.justify),
                 const SizedBox(height: 10),
-                Text(desc, textAlign: TextAlign.justify),
+                Text(
+                  desc,
+                  textAlign: TextAlign.justify,
+                  style: const TextStyle(fontSize: 13),
+                ),
               ],
             ),
           ),
 
+          // Progress Bars
           Positioned(
             bottom: 150,
             left: 30,
@@ -257,20 +315,16 @@ class DetailKoleksiPage extends StatelessWidget {
             ),
           ),
 
-          // 🔘 TOMBOL BAWAH
+          // Bottom Buttons
           Positioned(
-            bottom: 35,
+            bottom: 55,
             child: Row(
               children: [
-                // 🔙 KEMBALI
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Image.asset('assets/images/abaikanbt.png', width: 170),
                 ),
-
                 const SizedBox(width: 30),
-
-                // 🗑️ BUANG
                 GestureDetector(
                   onTap: () => _showDeleteDialog(context),
                   child: Image.asset('assets/images/btbuang.png', width: 170),
@@ -292,7 +346,7 @@ class DetailKoleksiPage extends StatelessWidget {
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: Colors.black87, // sesuaikan dengan background kamu
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 5),

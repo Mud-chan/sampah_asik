@@ -227,10 +227,8 @@ class DetailPage extends StatelessWidget {
 
     final exp = _getExpFromStars(stars);
 
-    // ✅ Tambah EXP
     await DBHelper.addExp(username, exp);
 
-    // ✅ Simpan sampah (nama + stars)
     await DBHelper.saveWaste(
       username: username,
       wasteName: wasteName,
@@ -250,7 +248,6 @@ class DetailPage extends StatelessWidget {
 
     final exp = _getExpFromStars(stars);
 
-    // ❗ HANYA TAMBAH EXP
     await DBHelper.addExp(username, exp);
 
     Navigator.pushReplacementNamed(context, '/home');
@@ -291,78 +288,97 @@ class DetailPage extends StatelessWidget {
   }
 
   // ===================== DIALOG BANTUAN (?) =====================
-  void _showHelpDialog(BuildContext context) {
+  void _showHelpDialog(BuildContext context, int stars) {
+    String starLabel = "";
+
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFFE8D6AB), // Warna krem sesuai gambar
+        backgroundColor: const Color(0xFFE8D6AB),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: SizedBox(
-          // Tinggi dialog dibatasi sekitar 65% layar (separo) agar bisa di-scroll
-          height: MediaQuery.of(context).size.height * 0.65,
+          height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             children: [
-              // Tombol silang di kiri atas
               Align(
                 alignment: Alignment.topLeft,
                 child: IconButton(
-                  padding: const EdgeInsets.only(left: 15, top: 15),
-                  icon: const Icon(Icons.close, color: Colors.red, size: 35),
+                  padding: const EdgeInsets.all(15),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 30),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
-              // Area Scrollable untuk Konten
               Expanded(
                 child: SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      // Penjelasan Bintang
-                      Image.asset('assets/images/notifbintang.png', width: 150),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Jumlah Bintang Menunjukkan kelangkaan dari sampah semakin banyak bintang mana semakin langka",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
-                      const SizedBox(height: 25),
+                      // SEKSI BINTANG
+                      Image.asset('assets/images/notifbintang.png', width: 120),
+                      const SizedBox(height: 5),
 
-                      // Penjelasan Parameter
-                      Image.asset('assets/images/notifparam.png', width: 250),
-                      const SizedBox(height: 10),
                       const Text(
-                        "Parameter di atas menjelaskan seberapa besar dampak sampah, peluang untuk didaur ulang, serta tindakan yang perlu dilakukan untuk mengelolanya dengan baik.",
+                        "Semakin banyak bintang, maka sampah tersebut semakin sulit untuk ditemukan.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13),
+                        style: TextStyle(fontSize: 12),
                       ),
-                      const SizedBox(height: 25),
+                      const Divider(height: 40, color: Colors.black26),
 
-                      // Penjelasan Tombol Abaikan
+                      // SEKSI PARAMETER 1: DAMPAK
+                      _buildHelpParameter(
+                        "Dampak Lingkungan",
+                        80,
+                        "Semakin tinggi angkanya, maka semakin besar kerusakan yang ditimbulkan sampah ini terhadap alam.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 2: DAUR ULANG
+                      _buildHelpParameter(
+                        "Tingkat Daur Ulang",
+                        40,
+                        "Semakin tinggi angkanya, maka sampah ini semakin mudah untuk diolah kembali menjadi barang berguna.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 3: CAKUPAN
+                      _buildHelpParameter(
+                        "Cakupan Pengaruh",
+                        60,
+                        "Menunjukkan seberapa luas area yang dapat tercemar jika sampah ini tidak dikelola dengan benar.",
+                      ),
+                      const SizedBox(height: 20),
+
+                      // SEKSI PARAMETER 4: AKSI
+                      _buildHelpParameter(
+                        "Aksi Pengelolaan",
+                        90,
+                        "Semakin tinggi angkanya, semakin banyak tindakan nyata yang perlu kamu lakukan untuk mengatasinya.",
+                      ),
+                      const SizedBox(height: 30),
+                      const Divider(height: 40, color: Colors.black26),
+
+                      // SEKSI TOMBOL
                       Image.asset('assets/images/notifbtsabaikan.png',
                           width: 160),
                       const SizedBox(height: 10),
                       const Text(
-                        "Tombol abaikan Berfungsi Untuk Kembali ke menu beranda",
+                        "Tombol abaikan berfungsi untuk kembali ke menu beranda",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 25),
 
-                      // Penjelasan Tombol Simpan
                       Image.asset('assets/images/notifbtsimpan.png',
                           width: 160),
                       const SizedBox(height: 10),
                       const Text(
-                        "Tombol simpan berfungsi untuk menyimpan sampah mu",
+                        "Tombol simpan berfungsi untuk menyimpan sampah mu ke koleksi",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -374,9 +390,23 @@ class DetailPage extends StatelessWidget {
     );
   }
 
+  Widget _buildHelpParameter(String title, int value, String desc) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildProgressBar(title, value),
+        const SizedBox(height: 8),
+        Text(
+          desc,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    print("🟢 DEBUG — wasteType yang DITERIMA oleh DetailPage: $wasteType");
     final key = wasteType.toLowerCase().replaceAll(' ', '_');
     final data = wasteData[key] ?? wasteData['plastik'];
 
@@ -404,12 +434,12 @@ class DetailPage extends StatelessWidget {
             ),
           ),
 
-          // Tombol Tanda Tanya (?) di Pojok Kanan Atas
+          // Help Button
           Positioned(
             top: 45,
             right: 20,
             child: GestureDetector(
-              onTap: () => _showHelpDialog(context),
+              onTap: () => _showHelpDialog(context, stars),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -425,33 +455,52 @@ class DetailPage extends StatelessWidget {
             ),
           ),
 
+          // Stars & Rare Text
           Positioned(
             top: 40,
-            child: Image.asset('assets/images/bintang$stars.png', width: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/bintang$stars.png', width: 200),
+                Transform.translate(
+                  offset: const Offset(0, -15),
+                  child: Text(
+                    stars == 3
+                        ? "Langka"
+                        : (stars == 2 ? "Lumayan Sulit" : "Mudah Ditemukan"),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                )
+              ],
+            ),
           ),
 
           Positioned(
-            top: 180,
+            top: 210,
             child: Image.asset('assets/images/lingkaranbwah.png', width: 230),
           ),
 
           Positioned(
-            top: 120,
+            top: 140,
             child: Image.asset('assets/images/$image', width: 150),
           ),
 
           Positioned(
-            top: 300,
+            top: 315,
             left: 30,
             right: 30,
             child: Column(
               children: [
                 Text(name,
-                    style:
-                        TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                SizedBox(height: 10),
+                    style: const TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
                 Text("Jenis: $type"),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text("Dampak Lingkungan:",
@@ -459,12 +508,15 @@ class DetailPage extends StatelessWidget {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
                 Text(impact, textAlign: TextAlign.justify),
-                SizedBox(height: 10),
-                Text(desc, textAlign: TextAlign.justify),
+                const SizedBox(height: 10),
+                Text(desc,
+                    textAlign: TextAlign.justify,
+                    style: const TextStyle(fontSize: 13)),
               ],
             ),
           ),
 
+          // Progress Bars
           Positioned(
             bottom: 150,
             left: 30,
@@ -490,13 +542,12 @@ class DetailPage extends StatelessWidget {
             ),
           ),
 
-          // 🔘 Tombol Abaikan dan Simpan (paling depan)
+          // Bottom Buttons
           Positioned(
-            bottom: 35,
+            bottom: 55,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ================= ABAIKAN =================
                 GestureDetector(
                   onTap: () => _handleIgnore(context, stars),
                   child: Image.asset(
@@ -504,10 +555,7 @@ class DetailPage extends StatelessWidget {
                     width: 170,
                   ),
                 ),
-
                 const SizedBox(width: 30),
-
-                // ================= SIMPAN =================
                 GestureDetector(
                   onTap: () => _handleSave(context, name, stars),
                   child: Image.asset(
@@ -532,7 +580,7 @@ class DetailPage extends StatelessWidget {
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: Colors.black87, // sesuaikan dengan background kamu
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 5),
